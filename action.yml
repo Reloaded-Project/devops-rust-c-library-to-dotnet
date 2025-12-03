@@ -63,6 +63,24 @@ runs:
           "x86_64-apple-ios"
         )
 
+        declare -A FRIENDLY_NAMES=(
+          ["x86_64-unknown-linux-gnu"]="linux-x64"
+          ["i686-unknown-linux-gnu"]="linux-x86"
+          ["aarch64-unknown-linux-gnu"]="linux-arm64"
+          ["armv7-unknown-linux-gnueabihf"]="linux-armv7-hf"
+          ["x86_64-pc-windows-msvc"]="windows-x64"
+          ["i686-pc-windows-msvc"]="windows-x86"
+          ["aarch64-pc-windows-msvc"]="windows-arm64"
+          ["x86_64-apple-darwin"]="macos-x64"
+          ["aarch64-apple-darwin"]="macos-arm64"
+          ["x86_64-linux-android"]="android-x64"
+          ["aarch64-linux-android"]="android-arm64"
+          ["armv7-linux-androideabi"]="android-armv7"
+          ["i686-linux-android"]="android-x86"
+          ["aarch64-apple-ios"]="ios-arm64"
+          ["x86_64-apple-ios"]="ios-x64"
+        )
+
         for TARGET in "${TARGETS[@]}"; do
           case "$TARGET" in
             x86_64-unknown-linux-gnu)
@@ -130,8 +148,21 @@ runs:
           # Create the target directory
           mkdir -p "${{ inputs.csharp-project-path }}/runtimes/$RUNTIME_ID/native"
 
-          # Move only the specified file types into the correct runtime directory
-          find downloaded_artifacts/ -type f -path "*/*$TARGET*/*$FILE_EXTENSION" -exec mv {} "${{ inputs.csharp-project-path }}/runtimes/$RUNTIME_ID/native/" \;
+          # Try raw triplet first, then fallback to friendly name
+          FILES=$(find downloaded_artifacts/ -type f -path "*/*$TARGET*/*$FILE_EXTENSION" 2>/dev/null)
+          if [ -z "$FILES" ]; then
+            FRIENDLY="${FRIENDLY_NAMES[$TARGET]}"
+            if [ -n "$FRIENDLY" ]; then
+              FILES=$(find downloaded_artifacts/ -type f -path "*/*$FRIENDLY*/*$FILE_EXTENSION" 2>/dev/null)
+            fi
+          fi
+
+          # Move found files to runtime directory
+          if [ -n "$FILES" ]; then
+            echo "$FILES" | while read -r file; do
+              mv "$file" "${{ inputs.csharp-project-path }}/runtimes/$RUNTIME_ID/native/"
+            done
+          fi
         done
         tree "${{ inputs.csharp-project-path }}/runtimes"
 
