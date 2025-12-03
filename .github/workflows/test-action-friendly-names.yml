@@ -1,4 +1,4 @@
-name: Test Build and Package .NET Library with Native Binaries
+name: Test Build and Package .NET Library with Native Binaries (Friendly Names)
 
 on:
   schedule:
@@ -8,7 +8,7 @@ on:
     branches: [v1-master]
     paths:
       - "action.yml"
-      - ".github/workflows/test-action.yml"
+      - ".github/workflows/test-action-friendly-names.yml"
 
 jobs:
   build-libraries:
@@ -54,7 +54,7 @@ jobs:
       - name: Build C Library
         uses: Reloaded-Project/devops-rust-lightweight-binary@v1
         with:
-          crate-name: prs-rs
+          artifact-prefix: C-Library
           target: ${{ matrix.target }}
           use-pgo: false
           use-cross: ${{ matrix.use-cross }}
@@ -62,6 +62,7 @@ jobs:
           features: c-exports
           build-library: true
           upload-artifacts: true
+          use-friendly-target-names: true
 
   build-nuget-package:
     needs: build-libraries

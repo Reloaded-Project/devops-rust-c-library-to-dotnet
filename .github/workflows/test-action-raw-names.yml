@@ -1,0 +1,100 @@
+name: Test Build and Package .NET Library with Native Binaries (Raw Names)
+
+on:
+  schedule:
+    - cron: "0 0 * * *" # Run daily at midnight
+  workflow_dispatch:
+  pull_request:
+    branches: [v1-master]
+    paths:
+      - "action.yml"
+      - ".github/workflows/test-action-raw-names.yml"
+
+jobs:
+  build-libraries:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            use-cross: false
+          - os: ubuntu-latest
+            target: i686-unknown-linux-gnu
+            use-cross: false
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            use-cross: true
+          - os: ubuntu-latest
+            target: armv7-unknown-linux-gnueabihf
+            use-cross: true
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            use-cross: false
+          - os: windows-latest
+            target: i686-pc-windows-msvc
+            use-cross: false
+          - os: windows-latest
+            target: aarch64-pc-windows-msvc
+            use-cross: false
+          - os: macos-13 # x86
+            target: x86_64-apple-darwin
+            use-cross: false
+          - os: macos-14 # M1
+            target: aarch64-apple-darwin
+            use-cross: false
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout Test Repository
+        uses: actions/checkout@v4
+        with:
+          repository: Sewer56/prs-rs
+          ref: d08599ed5473616f57d57a0966939e1a5dbda9b4
+          path: test-project
+
+      - name: Build C Library
+        uses: Reloaded-Project/devops-rust-lightweight-binary@v1
+        with:
+          artifact-prefix: C-Library
+          target: ${{ matrix.target }}
+          use-pgo: false
+          use-cross: ${{ matrix.use-cross }}
+          rust-project-path: test-project
+          features: c-exports
+          build-library: true
+          upload-artifacts: true
+          use-friendly-target-names: false
+
+  build-nuget-package:
+    needs: build-libraries
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Current Repository
+        uses: actions/checkout@v4
+
+      - name: Checkout Test Repository
+        uses: actions/checkout@v4
+        with:
+          repository: Sewer56/prs-rs
+          ref: d08599ed5473616f57d57a0966939e1a5dbda9b4
+          path: test-project
+
+      - name: Build and Package .NET Library
+        uses: ./
+        with:
+          csharp-project-path: test-project/bindings/csharp
+          install-dotnet: true
+
+      - name: Download NuGet Packages
+        uses: actions/download-artifact@v4
+        with:
+          name: NuGet-Package
+          path: nuget-packages
+
+      - name: Assert NuGet Packages Exist
+        shell: bash
+        run: |
+          if [ -z "$(ls -A nuget-packages)" ]; then
+              echo "No NuGet packages found in the 'nuget-packages' directory"
+              exit 1
+          fi
+          echo "NuGet packages exist in the 'nuget-packages' directory"
