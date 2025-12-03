@@ -2,21 +2,13 @@ name: Test Build and Package .NET Library with Native Binaries
 
 on:
   schedule:
-    - cron: '0 0 * * *' # Run daily at midnight
+    - cron: "0 0 * * *" # Run daily at midnight
   workflow_dispatch:
-  push:
-    branches: [ main ]
-    paths:
-      - 'action.yml'
-      - '.github/workflows/test-action.yml'
-    tags:
-      - 'v1'
-      - 'v1-test'
   pull_request:
-    branches: [ main ]
+    branches: [v1-master]
     paths:
-      - 'action.yml'
-      - '.github/workflows/test-action.yml'
+      - "action.yml"
+      - ".github/workflows/test-action.yml"
 
 jobs:
   build-libraries:
@@ -57,7 +49,7 @@ jobs:
         with:
           repository: Sewer56/prs-rs
           ref: d08599ed5473616f57d57a0966939e1a5dbda9b4
-          path: test-repo
+          path: test-project
 
       - name: Build C Library
         uses: Reloaded-Project/devops-rust-lightweight-binary@v1
@@ -66,7 +58,7 @@ jobs:
           target: ${{ matrix.target }}
           use-pgo: false
           use-cross: ${{ matrix.use-cross }}
-          rust-project-path: test-repo
+          rust-project-path: test-project
           features: c-exports
           build-library: true
           upload-artifacts: true
@@ -75,17 +67,20 @@ jobs:
     needs: build-libraries
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout Current Repository
+        uses: actions/checkout@v4
+
       - name: Checkout Test Repository
         uses: actions/checkout@v4
         with:
           repository: Sewer56/prs-rs
           ref: d08599ed5473616f57d57a0966939e1a5dbda9b4
-          path: test-repo
+          path: test-project
 
       - name: Build and Package .NET Library
-        uses: Reloaded-Project/devops-rust-c-library-to-dotnet@v1
+        uses: ./
         with:
-          csharp-project-path: test-repo/bindings/csharp
+          csharp-project-path: test-project/bindings/csharp
           install-dotnet: true
 
       - name: Download NuGet Packages
