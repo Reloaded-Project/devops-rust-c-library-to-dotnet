@@ -179,7 +179,7 @@ runs:
         dotnet pack -c Release --output nupkg/
 
     - name: Upload NuGet Package
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: ${{ inputs.nuget-artifact-name }}
         path: |
