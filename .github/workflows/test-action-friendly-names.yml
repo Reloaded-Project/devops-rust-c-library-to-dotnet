@@ -85,7 +85,7 @@ jobs:
           install-dotnet: true
 
       - name: Download NuGet Packages
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: NuGet-Package
           path: nuget-packages
